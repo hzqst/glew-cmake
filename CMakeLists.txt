@@ -42,6 +42,26 @@ option(USE_GLU "Use GLU" OFF)
 option(GLEW_OSMESA "Off-screen Mesa mode" OFF)
 option(PKG_CONFIG_REPRESENTATIVE_TARGET "Generate pc file for specified target as glew. libglew_static|libglew_shared" OFF)
 option(ONLY_LIBS "Do not build executables" OFF)
+option(GLEW_MSVC_LTCG "Enable MSVC LTCG" OFF)
+
+# Function to apply MSVC LTCG options
+function(apply_msvc_ltcg target)
+    if(MSVC AND GLEW_MSVC_LTCG)
+        target_compile_options(${target} PRIVATE /GL)
+        if(NOT ${target} STREQUAL libglew_static)
+            target_link_options(${target} PRIVATE /LTCG)
+        endif()
+    endif()
+endfunction()
+
+# Function to apply MSVC LTCG options specifically for static libraries
+function(apply_msvc_ltcg_static_lib target)
+    if(MSVC AND GLEW_MSVC_LTCG)
+        set_target_properties(${target} PROPERTIES
+            STATIC_LIBRARY_OPTIONS "/LTCG"
+        )
+    endif()
+endfunction()
 
 set(LIBGLEW_SRCS ${SRC_DIR}/glew.c)
 
@@ -222,6 +242,8 @@ if(glew-cmake_BUILD_STATIC)
 
 	target_compile_definitions(libglew_static PUBLIC GLEW_STATIC)
 	list(APPEND GLEW_TARGETS libglew_static)
+    apply_msvc_ltcg(libglew_static)  # Apply LTCG options if enabled
+    apply_msvc_ltcg_static_lib(libglew_static)  # Apply LTCG options for static lib
 endif()
 
 if(glew-cmake_BUILD_SHARED)
@@ -244,6 +266,7 @@ if(glew-cmake_BUILD_SHARED)
 		endif()
 	endif()
 	list(APPEND GLEW_TARGETS libglew_shared)
+    apply_msvc_ltcg(libglew_shared)  # Apply LTCG options if enabled
 endif()
 
 foreach(GLEW_TARGET ${GLEW_TARGETS})
